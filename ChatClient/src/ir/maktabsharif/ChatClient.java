@@ -1,9 +1,6 @@
 package ir.maktabsharif;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.Socket;
 import java.util.ArrayList;
 
@@ -104,6 +101,37 @@ public class ChatClient {
             listener.online(login);
         }
     }
+
+    public boolean connect() {
+        try {
+            this.socket = new Socket(serverName, serverPort);
+            System.out.println("Client port is " + socket.getLocalPort());
+            this.serverOut = socket.getOutputStream();
+            this.serverIn = socket.getInputStream();
+            this.bufferedIn = new BufferedReader(new InputStreamReader(serverIn));
+            return true;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public void addUserStatusListener(UserStatusListener listener) {
+        userStatusListeners.add(listener);
+    }
+
+    public void removeUserStatusListener(UserStatusListener listener) {
+        userStatusListeners.remove(listener);
+    }
+
+    public void addMessageListener(MessageListener listener) {
+        messageListeners.add(listener);
+    }
+
+    public void removeMessageListener(MessageListener listener) {
+        messageListeners.remove(listener);
+    }
+
 
 
 }
