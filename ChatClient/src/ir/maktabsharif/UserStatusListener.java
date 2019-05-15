@@ -1,4 +1,7 @@
 package ir.maktabsharif;
 
-public class UserStatusListener {
+public interface UserStatusListener {
+
+    public void online(String login);
+    public void offline(String login);
 }
