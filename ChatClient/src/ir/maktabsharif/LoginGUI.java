@@ -232,7 +232,7 @@ public class LoginGUI extends JFrame{
 
         LoginGUI loginGUI = new LoginGUI();
     }
-    
+
 }
 
 
