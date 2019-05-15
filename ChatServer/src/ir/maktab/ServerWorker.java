@@ -2,62 +2,143 @@ package ir.maktab;
 
 import java.io.*;
 import java.net.Socket;
-/**
- * author mohammad hashemi
- *
- */
+import java.util.Date;
+import java.util.List;
+
 public class ServerWorker extends Thread {
 
-    //Client Socket
-    private final Socket cliectSocket;
+    private final Socket clientSocket;
+    private final Server server;
+    private String login = null;
+    private OutputStream outputStream;
 
-    /**
-     * Constructor
-     *
-     * @param clientSocket witch it is each client's socket
-     */
-    public ServerWorker(Socket clientSocket) {
-
-        this.cliectSocket = clientSocket;
+    public ServerWorker(Server server, Socket clientSocket) {
+        this.server = server;
+        this.clientSocket = clientSocket;
     }
 
-    /**
-     * Do the thread works
-     */
     @Override
     public void run() {
-        handleClientSocket();
-    }
-
-    /**
-     * Handle what has to be done on each client's socket
-     */
-    private void handleClientSocket(){
-        try (cliectSocket) {
-            //Create inputStream and OutputStream
-            InputStream inputStream = cliectSocket.getInputStream();
-            OutputStream outputStream = cliectSocket.getOutputStream();
-
-            //Create reader and writer to read from client's socket
-            //and write on it.
-            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream));
-
-            //Read from client
-            String line;
-            while( (line = reader.readLine()) != null) {
-                if (line.equalsIgnoreCase("quit")) {
-                    break;
-                }
-                String msg = "You typed " + line + "\n";
-                writer.write(msg);
-                writer.flush();
-            }
-
-
-
+        try {
+            handleClientSocket();
         } catch (IOException e) {
             e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void handleClientSocket() throws IOException, InterruptedException {
+        InputStream inputStream = clientSocket.getInputStream();
+        this.outputStream = clientSocket.getOutputStream();
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+        String line;
+        while ((line = reader.readLine()) != null) {
+            String[] tokens = line.split(" ");
+            if (tokens != null && tokens.length > 0) {
+                String cmd = tokens[0];
+                if ("logoff".equals(cmd) || "quit".equalsIgnoreCase(cmd)) {
+                    handleLogOff();
+                    break;
+                } else if ("login".equalsIgnoreCase(cmd)) {
+                    handleLogin(outputStream, tokens);
+                } else if ("msg".equalsIgnoreCase(cmd)){
+                    String[] tokenMsg = line.split(" ",3);
+                    handleMessage(tokenMsg);
+                }
+                else {
+                    String msg = "Unknown " + cmd + "\n";
+                    outputStream.write(msg.getBytes());
+                }
+            }
+        }
+        clientSocket.close();
+    }
+    // format: "msg" "login" body...
+    private void handleMessage(String[] tokens) throws IOException {
+        String sendTo = tokens[1];
+        String body = tokens[2];
+
+        List<ServerWorker> workerList = server.getWorkerList();
+        for (ServerWorker worker : workerList){
+            if (sendTo.equalsIgnoreCase(worker.getLogin())){
+                String outMsg = "msg " + login + " " + body + "\n";
+                worker.send(outMsg);
+            }
+        }
+    }
+
+    private void handleLogOff() throws IOException {
+        server.removeWorker(this);
+        List<ServerWorker> workerList = server.getWorkerList();
+
+        // Send other online users current user's status
+        String onlineMsg = "Offline " + login + "\n";
+        for (ServerWorker worker : workerList) {
+
+            if (!login.equals(worker.getLogin())) {
+
+                worker.send(onlineMsg);
+            }
+        }
+        clientSocket.close();
+    }
+
+    public String getLogin() {
+        return login;
+    }
+
+    private void handleLogin(OutputStream outputStream, String[] tokens) throws IOException {
+        if (tokens.length == 3) {
+            String login = tokens[1];
+            String password = tokens[2];
+
+            if (login.equals("guest") && password.equals("guest") || login.equals("jim") && password.equals("jim")) {
+                String msg = "ok login\n";
+                outputStream.write(msg.getBytes());
+                this.login = login;
+                System.out.println("User logged in successfully " + login);
+
+
+                List<ServerWorker> workerList = server.getWorkerList();
+
+                // Send current user all other online logins
+                for (ServerWorker worker : workerList) {
+
+                    if (worker.getLogin() != null) {
+
+                        if (!login.equals(worker.getLogin())) {
+
+                            String msg2 = "online " + worker.getLogin() + "\n";
+                            send(msg2);
+                        }
+                    }
+                }
+
+                // Send other online users current user's status
+                String onlineMsg = "online " + login + "\n";
+                for (ServerWorker worker : workerList) {
+
+                    if (!login.equals(worker.getLogin())) {
+
+                        worker.send(onlineMsg);
+                    }
+                }
+
+            } else {
+                String msg = "error login\n";
+                outputStream.write(msg.getBytes());
+                System.out.println("Login failed for " + login);
+            }
+        }
+    }
+
+    private void send(String msg) throws IOException {
+        if (login != null) {
+
+            outputStream.write(msg.getBytes());
         }
     }
 }
