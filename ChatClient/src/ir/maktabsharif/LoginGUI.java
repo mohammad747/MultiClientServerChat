@@ -232,18 +232,7 @@ public class LoginGUI extends JFrame{
 
         LoginGUI loginGUI = new LoginGUI();
     }
-
-    // Variables declaration - do not modify
-//    private JButton jButton_login;
-//    private JLabel jLabel_IP;
-//    private JLabel jLabel_PASSWORD;
-//    private JLabel jLabel_PORT;
-//    private JLabel jLabel_USERNAME;
-//    private JTextField jTextField_ip;
-//    private JTextField jTextField_password;
-//    private JTextField jTextField_port;
-//    private JTextField jTextField_username;
-    // End of variables declaration
+    
 }
 
 
