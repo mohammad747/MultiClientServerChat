@@ -45,5 +45,42 @@ public class ChatClient {
         }
     }
 
-    
+    private void startMessageReader() {
+        Thread t = new Thread() {
+            @Override
+            public void run() {
+                readMessageLoop();
+            }
+        };
+        t.start();
+    }
+
+    private void readMessageLoop() {
+        try {
+            String line;
+            while ((line = bufferedIn.readLine()) != null) {
+                String[] tokens = line.split(" ");
+                if (tokens != null && tokens.length > 0) {
+                    String cmd = tokens[0];
+                    if ("online".equalsIgnoreCase(cmd)) {
+                        handleOnline(tokens);
+                    } else if ("offline".equalsIgnoreCase(cmd)) {
+                        handleOffline(tokens);
+                    } else if ("msg".equalsIgnoreCase(cmd)) {
+                        String[] tokensMsg = line.split(" ",3);
+                        handleMessage(tokensMsg);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+
 }
